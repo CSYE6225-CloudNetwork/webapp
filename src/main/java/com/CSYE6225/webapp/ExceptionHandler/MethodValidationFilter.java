@@ -22,7 +22,7 @@ public class MethodValidationFilter implements Filter {
 
         String method = httpRequest.getMethod();
         if ("OPTIONS".equalsIgnoreCase(method) || "HEAD".equalsIgnoreCase(method)) {
-            httpResponse.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            httpResponse.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             httpResponse.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
             httpResponse.setHeader("Pragma", "no-cache");
             httpResponse.setHeader("X-Content-Type-Options", "nosniff");
