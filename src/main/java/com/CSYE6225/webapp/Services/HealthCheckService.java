@@ -1,9 +1,6 @@
-package com.CSYE6225.webapp;
+package com.CSYE6225.webapp.Services;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 @Service
 public interface HealthCheckService {

@@ -1,4 +1,4 @@
-package com.CSYE6225.webapp;
+package com.CSYE6225.webapp.ExceptionHandler;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;

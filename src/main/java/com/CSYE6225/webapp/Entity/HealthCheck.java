@@ -1,18 +1,12 @@
-package com.CSYE6225.webapp;
+package com.CSYE6225.webapp.Entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+import jakarta.persistence.*;
 import lombok.Data;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @Entity
 @Data
@@ -25,11 +19,16 @@ public class HealthCheck {
     private Long checkID;
 
     @Column(name="DateTime")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss", timezone = "UTC")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "UTC")
     private LocalDateTime dateTime;
 
-
-    public void setDateTime(LocalDateTime now) {
-        this.dateTime = now;
+    // Ensure dateTime is stored in UTC before persisting
+    @PrePersist
+    public void prePersist() {
+        if (this.dateTime == null) {
+            this.dateTime = LocalDateTime.now(ZoneId.of("UTC"));
+        } else {
+            this.dateTime = this.dateTime.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
+        }
     }
 }

@@ -1,18 +1,12 @@
-package com.CSYE6225.webapp;
+package com.CSYE6225.webapp.Controllers;
 
+import com.CSYE6225.webapp.Services.HealthCheckService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/healthz")
