@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="API Test Suite">
+    <test name="API Tests">
+        <classes>
+            <class name="api.tests.HealthCheckTest"/>
+        </classes>
+    </test>
+</suite>

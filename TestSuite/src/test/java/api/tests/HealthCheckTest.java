@@ -1,4 +1,4 @@
-package com.CSYE6225.webapp.Test;
+package api.tests;
 
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeAll;
