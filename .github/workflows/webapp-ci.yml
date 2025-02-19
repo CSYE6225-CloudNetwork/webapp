@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  webapp-ci:
     runs-on: ubuntu-latest
     
     services:
@@ -61,7 +61,7 @@ jobs:
 
       - name: Waiting for application to start
         run: |
-          sleep 20
+          sleep 30
     
       - name: Execute Tests
         run: |
