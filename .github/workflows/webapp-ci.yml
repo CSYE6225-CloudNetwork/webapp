@@ -62,6 +62,7 @@ jobs:
       - name: Waiting for application to start
         run: |
           sleep 30
+
     
       - name: Execute Tests
         run: |
