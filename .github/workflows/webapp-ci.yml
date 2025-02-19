@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  webapp-ci:
     runs-on: ubuntu-latest
     
     services:
@@ -25,9 +25,9 @@ jobs:
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
       DB_USER: appuser
       DB_NAME: csye6225
-      DATABASE: ${{ secrets.DATABASE }}
-      USERNAME: ${{ secrets.USERNAME }}
-      DB_PASSWORD: ${{ secrets.MYSQL_PWD }}
+      database: ${{ secrets.database }}
+      username: ${{ secrets.username }}
+      password: ${{ secrets.MYSQL_PWD }}
 
     steps:
       - name: Checkout branch
@@ -39,13 +39,13 @@ jobs:
           java-version: '21'
           distribution: 'adopt'
 
-      - name: Connect MySQL & Database Creation
+      - name: Connect MySQL & database Creation
         run: |
           # Wait for MySQL to be ready
-          timeout 30 bash -c 'until mysql -h"127.0.0.1" -P"3306" -u${{ secrets.USERNAME }} -p"${{ secrets.MYSQL_PWD }}" -e "SELECT 1"; do sleep 2; done'
+          timeout 30 bash -c 'until mysql -h"127.0.0.1" -P"3306" -u${{ secrets.username }} -p"${{ secrets.MYSQL_PWD }}" -e "SELECT 1"; do sleep 2; done'
           
           # Create database if it doesn't exist
-          mysql -h"127.0.0.1" -P"3306" -u${{ secrets.USERNAME }} -p"${{ secrets.MYSQL_PWD }}" -e "CREATE DATABASE IF NOT EXISTS ${{ env.DB_NAME }};"
+          mysql -h"127.0.0.1" -P"3306" -u${{ secrets.username }} -p"${{ secrets.MYSQL_PWD }}" -e "CREATE DATABASE IF NOT EXISTS ${{ env.DB_NAME }};"
 
       - name: Maven Build
         run: |
@@ -61,7 +61,9 @@ jobs:
 
       - name: Waiting for application to start
         run: |
-          sleep 20
+          sleep 40 && \
+          cat webapp/target/app.log
+          
     
       - name: Execute Tests
         run: |
@@ -72,7 +74,7 @@ jobs:
       - name: Stop Spring Boot application
         if: always()
         run: |
-          
+          cat webapp/target/app.log
           if [ -f webapp/target/pid.file ]; then
             kill $(cat webapp/target/pid.file)
             echo "Application stopped"
