@@ -55,3 +55,5 @@ Before running the application, ensure you have the following installed:
 - If there is a database connection error, ensure MySQL is running.
 - If you get a "405 Method Not Allowed" response, make sure you are using the `GET` method.
 - If you get a "400 Bad Request" response, remove any query or body parameters.
+
+## Added Packer troubleshooting process
