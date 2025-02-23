@@ -31,19 +31,16 @@ installIfReq() {
     done
 }
 
-# Check and install necessary packages needed for spirngboot and application to run
+# Update and upgrade package lists
+log "Updating and upgrading package lists..."
+apt-get update && apt-get upgrade -y
+status "Package update and upgrade"
+
+# Check and install necessary packages
 log "Checking and installing necessary packages..."
-installIfReq unzip openjdk-23-jdk mysql-server maven wget
+installIfReq unzip openjdk-21-jdk mysql-server maven wget
 
-# Update package lists
-log "Update Packages"
-apt-get update
-status "Update package Completed"
 
-# Upgrade packages
-log "Upgrade Package"
-apt-get upgrade -y
-status "Upgrade Package Completed"
 
 # Install MySQL
 log "Install MySQL..."
@@ -93,22 +90,8 @@ log "Creating application directory: $APP_DIR..."
 mkdir -p $APP_DIR
 status "Application directory creation Completde"
 
-# Install Tomcat - for springboot
-log "Install Tomcat..."
-wget https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.16/bin/apache-tomcat-10.1.16.tar.gz
-tar -xzvf apache-tomcat-10.1.16.tar.gz -C /opt/
-mv /opt/apache-tomcat-10.1.16 /opt/tomcat
-chown -R $APP_USER:$APP_GROUP /opt/tomcat
-chmod -R u+x /opt/tomcat/bin
-status "Tomcat installation Completed"
-
-# Configure Tomcat port
-log "Configuring Tomcat port..."
-sed -i 's/port="8080"/port="5000"/' /opt/tomcat/conf/server.xml
-status "Tomcat port configuration"
-
-# Create environment variable file  : This will take username and pwd send while starting application : passed as args
-log "Create environment variable file..."
+# Create environment variable file
+log "Creating environment variable file..."
 cat > /etc/environment.d/csye6225.conf <<EOF
 database=jdbc:mysql://localhost:3306/csye6225
 username=$2
@@ -116,48 +99,14 @@ password=$3
 EOF
 status "Environment variable file creation"
 
-# Create Tomcat service file : this will execute the tomcat services which will help to run the application
-log "Creating Tomcat service file..."
-cat > /etc/systemd/system/tomcat.service <<EOF
-[Unit]
-Description=Apache Tomcat Web Application Container
-After=network.target
-
-[Service]
-Type=forking
-Environment=JAVA_HOME=/usr/lib/jvm/java-23-openjdk-amd64
-Environment=CATALINA_PID=/opt/tomcat/temp/tomcat.pid
-Environment=CATALINA_HOME=/opt/tomcat
-Environment=CATALINA_BASE=/opt/tomcat
-EnvironmentFile=/etc/environment.d/csye6225.conf
-
-ExecStart=/opt/tomcat/bin/startup.sh
-ExecStop=/opt/tomcat/bin/shutdown.sh
-
-User=$APP_USER
-Group=$APP_GROUP
-
-[Install]
-WantedBy=multi-user.target
-EOF
-status "Tomcat service file creation"
-
-# Reload systemd and start Tomcat
-systemctl daemon-reload
-systemctl start tomcat
-systemctl enable tomcat
-status "Tomcat service setup"
-
-# Assuming the application zip file is provided as an argument
+# Move JAR file to application directory
 if [ -z "$1" ]; then
-    log "ERROR: Path of application.zip file not provided"
+    log "ERROR: Please provide the path to the application JAR file"
     exit 1
 fi
-
-# Unzip application
-log "Unzipping application..."
-unzip -o "$1" -d $APP_DIR
-status "Application unzip Completed"
+log "Moving application JAR file..."
+mv "$1" $APP_DIR/application.jar
+status "Application JAR file moved"
 
 # Update permissions
 log "Updating permissions..."
@@ -179,20 +128,31 @@ EOF
 systemctl restart mysql
 status "MySQL configuration"
 
+# Create systemd service file for Spring Boot application
+log "Creating systemd service file for Spring Boot application..."
+cat > /etc/systemd/system/csye6225.service <<EOF
+[Unit]
+Description=Spring Boot Application
+After=network.target
 
-# Restart Tomcat to apply all changes
-log "Restarting Tomcat..."
-systemctl restart tomcat
-status "Tomcat restart"
+[Service]
+User=$APP_USER
+WorkingDirectory=$APP_DIR
+ExecStart=/usr/bin/java -jar $APP_DIR/application.jar
+EnvironmentFile=/etc/environment.d/csye6225.conf
+SuccessExitStatus=143
+Restart=always
+RestartSec=10
 
-# Verify Tomcat port
-log "Verifying Tomcat port..."
-sleep 25  # Give Tomcat time to start
-if netstat -tulpn | grep :8081 > /dev/null; then
-    log "SUCCESS: Tomcat is listening on port 8081"
-else
-    log "ERROR: Tomcat not recieving any connections on port"
-    exit 1
-fi
+[Install]
+WantedBy=multi-user.target
+EOF
+status "Spring Boot systemd service file created"
+
+# Reload systemd and start the Spring Boot application
+systemctl daemon-reload
+systemctl start csye6225
+systemctl enable csye6225
+status "Spring Boot application setup completed"
 
 log "Setup completed successfully!"
