@@ -81,10 +81,14 @@ jobs:
             cat webapp/target/app.log
           
           fi
+      - name: Packer Init (Install Required Pulgins)
+        run: |
+            cd packer
+            packer init .
       - name: Packer FMT (Check Formatting)
         run: |
             cd packer
-            packer fmt -check .
+          packer fmt -recursive -check .
 
       - name: Packer Validate (Verify Configuration)
         run: |
