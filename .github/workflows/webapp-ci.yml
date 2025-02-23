@@ -1,4 +1,4 @@
-name: Packer Build - AWS & GCP
+name: webapp-ci
 
 on:
   push:
