@@ -94,19 +94,19 @@ jobs:
         run: |
           cd packer
           packer validate \
-            -var "instance_type=${{ vars.INSTANCE_TYPE }}" \
+            -var "instance_type=${{ vars.AWS_INSTANCE_TYPE }}" \
             -var "region=${{ vars.AWS_REGION }}" \
             -var "profile=${{ vars.AWS_PROFILE }}" \
-            -var "ssh_username=${{ vars.SSH_USERNAME }}" \
+            -var "ssh_username=${{ vars.AWS_SSH_USERNAME }}" \
             -var "USERNAME=${{ secrets.username }}" \
             -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
             aws-ubuntu.pkr.hcl
 
       - name: Debug Environment Variables
         run: |
-            echo "INSTANCE_TYPE=${{ vars.INSTANCE_TYPE }}"
+            echo "INSTANCE_TYPE=${{ vars.AWS_INSTANCE_TYPE }}"
             echo "AWS_REGION=${{ vars.AWS_REGION }}"
             echo "AWS_PROFILE=${{ vars.AWS_PROFILE }}"
-            echo "SSH_USERNAME=${{ vars.SSH_USERNAME }}"
+            echo "SSH_USERNAME=${{ vars.AWS_SSH_USERNAME }}"
             echo "USERNAME=${{ secrets.username }}"
             echo "MYSQL_PWD=${{ secrets.MYSQL_PWD }}"
