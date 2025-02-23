@@ -1,94 +1,34 @@
-name: WebApp CI - workflow
+name: Packer Build - AWS & GCP
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches:
+      - main  # Runs only when PR is merged, not when raised
 
 jobs:
-  webapp-ci:
+  packer-validate:
+    name: Packer Template Validation
     runs-on: ubuntu-latest
-    
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_PWD }}
-          MYSQL_DATABASE: csye6225
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
-    env:
-      MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_PWD }}
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-      DB_USER: appuser
-      DB_NAME: csye6225
-      database: ${{ secrets.database }}
-      username: ${{ secrets.username }}
-      password: ${{ secrets.MYSQL_PWD }}
 
     steps:
-      - name: Checkout branch
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Install and Set up JDK21
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-          distribution: 'adopt'
+      - name: Install Packer
+        run: |
+          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+          sudo apt-get update && sudo apt-get install -y packer
 
-      - name: Connect MySQL & database Creation
+      - name: Packer Init (Install Required Plugins)
         run: |
-          # Wait for MySQL to be ready
-          timeout 30 bash -c 'until mysql -h"127.0.0.1" -P"3306" -u${{ secrets.username }} -p"${{ secrets.MYSQL_PWD }}" -e "SELECT 1"; do sleep 2; done'
-          
-          # Create database if it doesn't exist
-          mysql -h"127.0.0.1" -P"3306" -u${{ secrets.username }} -p"${{ secrets.MYSQL_PWD }}" -e "CREATE DATABASE IF NOT EXISTS ${{ env.DB_NAME }};"
+          cd packer
+          packer init .
 
-      - name: Maven Build
+      - name: Packer Format Check
         run: |
-          cd webapp
-          mvn clean package -DskipTests
-
-
-      - name: Start Spring Boot application - RUN
-        run:
-          cd webapp/target && nohup java -jar webapp-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
-          echo $! > ./pid.file
-      
-
-      - name: Waiting for application to start
-        run: |
-          sleep 40 && \
-          cat webapp/target/app.log
-          
-    
-      - name: Execute Tests
-        run: |
-          cd ./TestSuite/ && \
-          mvn test
-
-      
-      - name: Stop Spring Boot application
-        if: always()
-        run: |
-          cat webapp/target/app.log
-          if [ -f webapp/target/pid.file ]; then
-            kill $(cat webapp/target/pid.file)
-            echo "Application stopped"
-            cat webapp/target/app.log
-          
-          fi
-      - name: Packer Init (Install Required Pulgins)
-        run: |
-            cd packer
-            packer init .
-      - name: Packer FMT (Check Formatting)
-        run: |
-            cd packer
-            packer fmt -recursive -check .
+          cd packer
+          packer fmt -recursive -check .
 
       - name: Packer Validate (Verify Configuration)
         run: |
@@ -102,11 +42,63 @@ jobs:
             -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
             aws-ubuntu.pkr.hcl
 
-      - name: Debug Environment Variables
+  packer-build:
+    name: Build Packer Image
+    needs: packer-validate  # Runs only if validation succeeds
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install Packer
         run: |
-            echo "INSTANCE_TYPE=${{ vars.AWS_INSTANCE_TYPE }}"
-            echo "AWS_REGION=${{ vars.AWS_REGION }}"
-            echo "AWS_PROFILE=${{ vars.AWS_PROFILE }}"
-            echo "SSH_USERNAME=${{ vars.AWS_SSH_USERNAME }}"
-            echo "USERNAME=${{ secrets.username }}"
-            echo "MYSQL_PWD=${{ secrets.MYSQL_PWD }}"
+          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+          sudo apt-get update && sudo apt-get install -y packer
+
+      - name: Install AWS CLI
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+          aws --version
+
+      #      - name: Install GCP CLI
+      #        run: |
+      #          sudo apt-get install -y apt-transport-https ca-certificates gnupg
+      #          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+      #          sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+      #          gcloud --version
+
+      - name: Authenticate AWS CLI
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_GITHUB_ACCESS_KEY }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_GITHUB_SECRET_KEY }}
+          aws configure set region ${{ vars.AWS_REGION }}
+
+      #      - name: Authenticate GCP CLI
+      #        run: |
+      #          echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > gcp-key.json
+      #          gcloud auth activate-service-account --key-file=gcp-key.json
+      #          gcloud config set project ${{ vars.GCP_PROJECT }}
+
+      - name: Build Packer Image for AWS & GCP
+        run: |
+          cd packer
+          packer build \
+            -var "instance_type=${{ vars.AWS_INSTANCE_TYPE }}" \
+            -var "region=${{ vars.AWS_REGION }}" \
+            -var "profile=${{ vars.AWS_PROFILE }}" \
+            -var "ssh_username=${{ vars.AWS_SSH_USERNAME }}" \
+            -var "USERNAME=${{ secrets.username }}" \
+            -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
+            aws-ubuntu.pkr.hcl
+
+      #      - name: Share AMI with DEMO account
+      #        run: |
+      #          AMI_ID=$(aws ec2 describe-images --owners self --filters "Name=name,Values=my-ami-name" --query 'Images[0].ImageId' --output text)
+      #          aws ec2 modify-image-attribute --image-id $AMI_ID --launch-permission "Add=[{UserId=${{ vars.DEMO_ACCOUNT_ID }}]"}
+
+      - name: Cleanup
+        run: rm -f gcp-key.json
