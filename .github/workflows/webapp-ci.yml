@@ -88,7 +88,7 @@ jobs:
       - name: Packer FMT (Check Formatting)
         run: |
             cd packer
-          packer fmt -recursive -check .
+            packer fmt -recursive -check .
 
       - name: Packer Validate (Verify Configuration)
         run: |
