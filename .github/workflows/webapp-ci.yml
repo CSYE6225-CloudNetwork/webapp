@@ -81,3 +81,23 @@ jobs:
             cat webapp/target/app.log
           
           fi
+      - name: Packer FMT (Check Formatting)
+        run: |
+            cd packer
+            packer fmt -check .
+
+      - name: Packer Validate (Verify Configuration)
+        run: |
+                cd packer
+                packer validate .
+
+      - name: Packer Build (AMI Creation)
+        run: |
+                cd packer
+                packer build \
+                  -var "instance_type=${{ vars.INSTANCE_TYPE }}" \
+                  -var "region=${{ vars.AWS_REGION }}" \
+                  -var "profile=${{ vars.AWS_PROFILE }}" \
+                  -var "ssh_username=${{ vars.SSH_USERNAME }}" \
+                  -var "USERNAME=${{ secrets.username }}" \
+                  -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" .
