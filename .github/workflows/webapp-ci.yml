@@ -92,8 +92,24 @@ jobs:
 
       - name: Packer Validate (Verify Configuration)
         run: |
-                cd packer
-                packer validate .
+          cd packer
+          packer validate \
+            -var "instance_type=${{ vars.INSTANCE_TYPE }}" \
+            -var "region=${{ vars.AWS_REGION }}" \
+            -var "profile=${{ vars.AWS_PROFILE }}" \
+            -var "ssh_username=${{ vars.SSH_USERNAME }}" \
+            -var "USERNAME=${{ secrets.username }}" \
+            -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
+            aws-ubuntu.pkr.hcl
+
+      - name: Debug Environment Variables
+        run: |
+            echo "INSTANCE_TYPE=${{ vars.INSTANCE_TYPE }}"
+            echo "AWS_REGION=${{ vars.AWS_REGION }}"
+            echo "AWS_PROFILE=${{ vars.AWS_PROFILE }}"
+            echo "SSH_USERNAME=${{ vars.SSH_USERNAME }}"
+            echo "USERNAME=${{ secrets.username }}"
+            echo "MYSQL_PWD=${{ secrets.MYSQL_PWD }}"
 
       - name: Packer Build (AMI Creation)
         run: |
@@ -104,4 +120,4 @@ jobs:
                   -var "profile=${{ vars.profile }}" \
                   -var "ssh_username=${{ vars.ssh_username }}" \
                   -var "USERNAME=${{ secrets.username }}" \
-                  -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" .
+                  -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \ aws-ubuntu.pkr.hcl
