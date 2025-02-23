@@ -99,9 +99,9 @@ jobs:
         run: |
                 cd packer
                 packer build \
-                  -var "instance_type=${{ vars.INSTANCE_TYPE }}" \
-                  -var "region=${{ vars.AWS_REGION }}" \
-                  -var "profile=${{ vars.AWS_PROFILE }}" \
-                  -var "ssh_username=${{ vars.SSH_USERNAME }}" \
+                  -var "instance_type=${{ vars.instance_type }}" \
+                  -var "region=${{ vars.region }}" \
+                  -var "profile=${{ vars.profile }}" \
+                  -var "ssh_username=${{ vars.ssh_username }}" \
                   -var "USERNAME=${{ secrets.username }}" \
                   -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" .
