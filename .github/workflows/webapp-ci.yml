@@ -64,24 +64,11 @@ jobs:
           sudo ./aws/install
           aws --version
 
-      #      - name: Install GCP CLI
-      #        run: |
-      #          sudo apt-get install -y apt-transport-https ca-certificates gnupg
-      #          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-      #          sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-      #          gcloud --version
-
       - name: Authenticate AWS CLI
         run: |
           aws configure set aws_access_key_id ${{ secrets.AWS_GITHUB_ACCESS_KEY }}
           aws configure set aws_secret_access_key ${{ secrets.AWS_GITHUB_SECRET_KEY }}
           aws configure set region ${{ vars.AWS_REGION }}
-
-      #      - name: Authenticate GCP CLI
-      #        run: |
-      #          echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > gcp-key.json
-      #          gcloud auth activate-service-account --key-file=gcp-key.json
-      #          gcloud config set project ${{ vars.GCP_PROJECT }}
 
       - name: Build Packer Image for AWS & GCP
         run: |
@@ -94,11 +81,5 @@ jobs:
             -var "USERNAME=${{ secrets.username }}" \
             -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
             aws-ubuntu.pkr.hcl
-
-      #      - name: Share AMI with DEMO account
-      #        run: |
-      #          AMI_ID=$(aws ec2 describe-images --owners self --filters "Name=name,Values=my-ami-name" --query 'Images[0].ImageId' --output text)
-      #          aws ec2 modify-image-attribute --image-id $AMI_ID --launch-permission "Add=[{UserId=${{ vars.DEMO_ACCOUNT_ID }}]"}
-
       - name: Cleanup
         run: rm -f gcp-key.json
