@@ -27,6 +27,12 @@ jobs:
           sudo apt update && sudo apt install -y packer
           packer --version  # Verify installation
 
+      - name: Create Temporary Dummy JAR for Validation
+        run: |
+            mkdir -p webapp/target
+            touch webapp/target/webapp-0.0.1-SNAPSHOT.jar
+            ls -l webapp/target/ 
+
       - name: Initialize Packer Plugins
         run: |
           cd packer
@@ -48,3 +54,7 @@ jobs:
             -var "USERNAME=${{ secrets.USERNAME }}" \
             -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
             aws-ubuntu.pkr.hcl
+
+      - name: Cleanup Dummy JAR File
+        run: |
+            rm -f webapp/target/webapp-0.0.1-SNAPSHOT.jar
