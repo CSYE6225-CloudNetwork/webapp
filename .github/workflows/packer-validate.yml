@@ -1,0 +1,35 @@
+name: Packer Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-packer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install Packer
+        run: |
+          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+          sudo apt-get update && sudo apt-get install -y packer
+
+      - name: Validate Packer Configuration
+        run: |
+          cd packer
+          packer init .
+          packer fmt -recursive -check .
+          packer 
+          packer validate \
+            -var "instance_type=${{ vars.AWS_INSTANCE_TYPE }}" \
+            -var "region=${{ vars.AWS_REGION }}" \
+            -var "profile=${{ vars.AWS_PROFILE }}" \
+            -var "ssh_username=${{ vars.AWS_SSH_USERNAME }}" \
+            -var "USERNAME=${{ secrets.username }}" \
+            -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
+            aws-ubuntu.pkr.hcl

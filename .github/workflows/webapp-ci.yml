@@ -1,76 +1,54 @@
-name: webapp-ci
+name: Packer Build (After Merge)
 
 on:
   push:
     branches:
-      - main  # Runs only when PR is merged, not when raised
+      - main
 
 jobs:
-  packer-validate:
-    name: Packer Template Validation
+  test-and-build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
-      - name: Install Packer
-        run: |
-          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-          sudo apt-get update && sudo apt-get install -y packer
-
-      - name: Packer Init (Install Required Plugins)
-        run: |
-          cd packer
-          packer init .
-
-      - name: Packer Format Check
-        run: |
-          cd packer
-          packer fmt -recursive -check .
-
-      - name: Packer Validate (Verify Configuration)
-        run: |
-          cd packer
-          packer validate \
-            -var "instance_type=${{ vars.AWS_INSTANCE_TYPE }}" \
-            -var "region=${{ vars.AWS_REGION }}" \
-            -var "profile=${{ vars.AWS_PROFILE }}" \
-            -var "ssh_username=${{ vars.AWS_SSH_USERNAME }}" \
-            -var "USERNAME=${{ secrets.username }}" \
-            -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
-            aws-ubuntu.pkr.hcl
-
-  packer-build:
-    name: Build Packer Image
-    needs: packer-validate  # Runs only if validation succeeds
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Install Packer
-        run: |
-          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-          sudo apt-get update && sudo apt-get install -y packer
 
       - name: Install AWS CLI
         run: |
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
-          aws --version
+          sudo apt update
+          sudo apt install -y awscli
 
-      - name: Authenticate AWS CLI
+      - name: Configure AWS CLI
         run: |
           aws configure set aws_access_key_id ${{ secrets.AWS_GITHUB_ACCESS_KEY }}
           aws configure set aws_secret_access_key ${{ secrets.AWS_GITHUB_SECRET_KEY }}
-          aws configure set region ${{ vars.AWS_REGION }}
+          aws configure set region ${{ secrets.AWS_REGION }}
 
-      - name: Build Packer Image for AWS & GCP
+      - name: Install Packer
+        run: |
+          sudo apt update && sudo apt install -y unzip
+          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+          sudo apt update && sudo apt install -y packer
+
+      - name: Install and Set up JDK21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'adopt'
+
+      - name: Run Integration Tests
+        run: |
+          cd ./TestSuite/ && mvn test
+
+      - name: Build Application Artifact
+        run: |
+          cd webapp
+          mvn clean package -DskipTests
+          mkdir -p packer/app
+          cp target/webapp-0.0.1-SNAPSHOT.jar ../packer/app/
+
+      - name: Packer Build (Create Custom Image)
         run: |
           cd packer
           packer build \
@@ -81,5 +59,3 @@ jobs:
             -var "USERNAME=${{ secrets.username }}" \
             -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
             aws-ubuntu.pkr.hcl
-      - name: Cleanup
-        run: rm -f gcp-key.json
