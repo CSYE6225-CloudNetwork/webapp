@@ -11,7 +11,7 @@ public class HealthCheckTest {
     @BeforeAll
     public static void setup() {
         // Get base URL from system property (use "basurl" instead of "base.url")
-        String baseUrl = System.getProperty("basurl", "http://localhost:5000");
+        String baseUrl = System.getProperty("basurl", "http://localhost:5001");
         RestAssured.baseURI = baseUrl;
         System.out.println("Base URL set to: " + baseUrl);
     }
