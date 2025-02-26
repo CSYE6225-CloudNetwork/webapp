@@ -1,0 +1,134 @@
+name: Packer Build CI - workflow
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  webapp-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v3
+
+      - name: Install and Set up JDK21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'adopt'
+
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "latest" # or specify a version like "1.12.0"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+            aws-access-key-id: ${{ secrets.AWS_GITHUB_ACCESS_KEY }}
+            aws-secret-access-key: ${{ secrets.AWS_GITHUB_SECRET_KEY }}
+            aws-region: ${{ vars.AWS_REGION }}
+
+      # Install GCP CLI
+      - name: Setup GCP SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+             version: "latest"
+
+        #  Authenticate to GCP
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+              credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+
+      - name: Maven Build
+        run: |
+          cd webapp
+          mvn clean package -DskipTests
+
+      - name: Initialize Packer Plugins
+        run: |
+          cd packer
+          packer init .
+
+      - name: Format Packer Files (Check Only)
+        run: |
+          cd packer
+          packer fmt -recursive -check .
+
+      - name: Validate Packer Template
+        run: |
+          cd packer
+          packer validate \
+            -var "instance_type=${{ vars.AWS_INSTANCE_TYPE }}" \
+            -var "region=${{ vars.AWS_REGION }}" \
+            -var "ssh_username=${{ vars.AWS_SSH_USERNAME }}" \
+            -var "USERNAME=${{ secrets.username }}" \
+            -var "gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+            -var "gcp_zone=${{ vars.GCP_ZONE }}" \
+            -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
+            aws-ubuntu.pkr.hcl
+
+      - name: Packer Build (Create Custom Image)
+        run: |
+          cd packer
+          packer build \
+            -var "instance_type=${{ vars.AWS_INSTANCE_TYPE }}" \
+            -var "region=${{ vars.AWS_REGION }}" \
+            -var "ssh_username=${{ vars.AWS_SSH_USERNAME }}" \
+            -var "USERNAME=${{ secrets.username }}" \
+            -var "gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+            -var "gcp_zone=${{ vars.GCP_ZONE }}" \
+            -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
+            aws-ubuntu.pkr.hcl
+
+      - name: Retrieve AMI ID
+        id: get-ami
+        run: |
+            AMI_NAME="base-ami-aws-*"
+            AMI_ID=$(aws ec2 describe-images --owners self \
+            --filters "Name=name,Values=$AMI_NAME" \
+            --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
+            --output text)
+            
+            echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+            echo "Found AMI ID: $AMI_ID"
+            # Debug AWS Account ID
+            echo "DEMO_AWS_ACCOUNT_ID=${{ vars.DEMO_AWS_ACCOUNT_ID }}"
+
+      - name: Share AMI with DEMO Account
+        run: |
+          if [ -z "${{ vars.DEMO_AWS_ACCOUNT_ID }}" ]; then
+            echo "Error: DEMO_AWS_ACCOUNT_ID is not set. Please configure it in GitHub Actions Variables."
+            exit 1
+          fi
+
+          aws ec2 modify-image-attribute \
+            --image-id $AMI_ID \
+            --launch-permission "Add=[{UserId=${{ vars.DEMO_AWS_ACCOUNT_ID }}}]"
+
+      - name: Retrieve GCP Machine Image Name
+        id: get-gcp-image
+        run: |
+          IMAGE_NAME=$(gcloud compute images list --project=${{ vars.GCP_PROJECT_ID }} \
+          --filter="name~'base-image-gcp-*'" \
+          --sort-by="~creationTimestamp" \
+          --limit=1 \
+          --format="value(name)")
+
+          echo "GCP_IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "Found GCP Image Name: $IMAGE_NAME"
+      
+
+      - name: Share GCP Machine Image with Service Account
+        run: |
+          gcloud compute images add-iam-policy-binding $GCP_IMAGE_NAME \
+            --project=${{ vars.GCP_PROJECT_ID }} \
+            --member="serviceAccount:${{ secrets.DEMO_GCP_SA }}" \
+            --role="roles/compute.imageUser"
+      
+      
+
+      

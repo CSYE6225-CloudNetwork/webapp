@@ -1,15 +1,13 @@
 name: WebApp CI - workflow
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
   webapp-ci:
     runs-on: ubuntu-latest
-    
+
     services:
       mysql:
         image: mysql:8.0
@@ -39,6 +37,11 @@ jobs:
           java-version: '21'
           distribution: 'adopt'
 
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+        with:
+          version: "latest" # or specify a version like "1.12.0"
+
       - name: Connect MySQL & database Creation
         run: |
           # Wait for MySQL to be ready
@@ -57,20 +60,20 @@ jobs:
         run:
           cd webapp/target && nohup java -jar webapp-0.0.1-SNAPSHOT.jar > app.log 2>&1 &
           echo $! > ./pid.file
-      
+
 
       - name: Waiting for application to start
         run: |
           sleep 40 && \
           cat webapp/target/app.log
-          
-    
+
+
       - name: Execute Tests
         run: |
           cd ./TestSuite/ && \
           mvn test
 
-      
+
       - name: Stop Spring Boot application
         if: always()
         run: |
@@ -81,32 +84,26 @@ jobs:
             cat webapp/target/app.log
           
           fi
-      - name: Packer Init (Install Required Pulgins)
-        run: |
-            cd packer
-            packer init .
-      - name: Packer FMT (Check Formatting)
-        run: |
-            cd packer
-            packer fmt -recursive -check .
 
-      - name: Packer Validate (Verify Configuration)
+      - name: Initialize Packer Plugins
+        run: |
+          cd packer
+          packer init .
+
+      - name: Format Packer Files (Check Only)
+        run: |
+          cd packer
+          packer fmt -recursive -check .
+
+      - name: Validate Packer Template
         run: |
           cd packer
           packer validate \
             -var "instance_type=${{ vars.AWS_INSTANCE_TYPE }}" \
             -var "region=${{ vars.AWS_REGION }}" \
-            -var "profile=${{ vars.AWS_PROFILE }}" \
             -var "ssh_username=${{ vars.AWS_SSH_USERNAME }}" \
             -var "USERNAME=${{ secrets.username }}" \
+            -var "gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+            -var "gcp_zone=${{ vars.GCP_ZONE }}" \
             -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
             aws-ubuntu.pkr.hcl
-
-      - name: Debug Environment Variables
-        run: |
-            echo "INSTANCE_TYPE=${{ vars.AWS_INSTANCE_TYPE }}"
-            echo "AWS_REGION=${{ vars.AWS_REGION }}"
-            echo "AWS_PROFILE=${{ vars.AWS_PROFILE }}"
-            echo "SSH_USERNAME=${{ vars.AWS_SSH_USERNAME }}"
-            echo "USERNAME=${{ secrets.username }}"
-            echo "MYSQL_PWD=${{ secrets.MYSQL_PWD }}"
