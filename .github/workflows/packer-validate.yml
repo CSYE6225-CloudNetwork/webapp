@@ -84,30 +84,6 @@ jobs:
             -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
             aws-ubuntu.pkr.hcl
 
-      - name: Retrieve AMI ID
-        id: get-ami
-        run: |
-            AMI_NAME="base-ami-aws-*"
-            AMI_ID=$(aws ec2 describe-images --owners self \
-            --filters "Name=name,Values=$AMI_NAME" \
-            --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
-            --output text)
-            
-            echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
-            echo "Found AMI ID: $AMI_ID"
-            # Debug AWS Account ID
-            echo "DEMO_AWS_ACCOUNT_ID=${{ vars.DEMO_AWS_ACCOUNT_ID }}"
-
-      - name: Share AMI with DEMO Account
-        run: |
-          if [ -z "${{ vars.DEMO_AWS_ACCOUNT_ID }}" ]; then
-            echo "Error: DEMO_AWS_ACCOUNT_ID is not set. Please configure it in GitHub Actions Variables."
-            exit 1
-          fi
-
-          aws ec2 modify-image-attribute \
-            --image-id $AMI_ID \
-            --launch-permission "Add=[{UserId=${{ vars.DEMO_AWS_ACCOUNT_ID }}}]"
 
       - name: Retrieve GCP Machine Image Name
         id: get-gcp-image

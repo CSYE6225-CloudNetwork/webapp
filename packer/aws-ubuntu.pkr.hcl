@@ -21,6 +21,11 @@ variable "region" {
   type        = string
 }
 
+variable "AWS_DEMO_ACCOUNT_ID" {
+  description = "AWS Demo account ID"
+  type        = string
+}
+
 variable "ssh_username" {
   description = "SSH username for the instance"
   type        = string
@@ -76,6 +81,8 @@ source "amazon-ebs" "ubuntu" {
   ami_name      = "base-ami-aws-${local.timestamp}"
   instance_type = var.instance_type
   region        = var.region
+
+  ami_users = [var.AWS_DEMO_ACCOUNT_ID]
   #   profile       = var.profile
   source_ami_filter {
     filters = {
