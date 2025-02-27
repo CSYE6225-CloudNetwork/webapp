@@ -69,6 +69,7 @@ jobs:
             -var "gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
             -var "gcp_zone=${{ vars.GCP_ZONE }}" \
             -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
+            -var "AWS_DEMO_ACCOUNT_ID=${{ secrets.AWS_DEMO_ACCOUNT_ID }}" \
             aws-ubuntu.pkr.hcl
 
       - name: Packer Build (Create Custom Image)
@@ -82,6 +83,7 @@ jobs:
             -var "gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
             -var "gcp_zone=${{ vars.GCP_ZONE }}" \
             -var "MYSQL_PWD=${{ secrets.MYSQL_PWD }}" \
+            -var "AWS_DEMO_ACCOUNT_ID=${{ secrets.AWS_DEMO_ACCOUNT_ID }}" \
             aws-ubuntu.pkr.hcl
 
 
