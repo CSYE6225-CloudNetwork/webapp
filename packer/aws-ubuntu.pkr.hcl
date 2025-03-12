@@ -11,7 +11,7 @@ packer {
   }
 }
 
-variable "instance_type" {
+variables "instance_type" {
   description = "Type of instance to be used"
   type        = string
 }
