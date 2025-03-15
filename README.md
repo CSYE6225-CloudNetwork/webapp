@@ -50,6 +50,7 @@ Before running the application, ensure you have the following installed:
    
 2. Check the response based on the API behavior described above.
 
+
 ## Troubleshooting
 
 - If there is a database connection error, ensure MySQL is running.
