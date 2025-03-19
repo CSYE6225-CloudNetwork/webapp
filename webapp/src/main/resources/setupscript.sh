@@ -38,39 +38,39 @@ status "Package update and upgrade"
 
 # Check and install necessary packages
 log "Checking and installing necessary packages..."
-installIfReq unzip openjdk-21-jdk mysql-server maven wget
+installIfReq unzip openjdk-21-jdk maven wget
 
 
 
 # Install MySQL
-log "Install MySQL..."
-MYSQL_ROOT_PASSWORD=$3
-echo "mysql-server mysql-server/root_password password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
-echo "mysql-server mysql-server/root_password_again password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
-apt-get install -y mysql-server
-status "Install MySQL Completed"
-
-# Start MySQL service
-log "Start MySQL service..."
-systemctl start mysql
-systemctl enable mysql
-status "MySQL service start Completed"
-
-# Configure creds for mySQL
-log "Configure MySQL authentication..."
-mysql -u "$2" -p"$MYSQL_ROOT_PASSWORD" <<EOF
-ALTER USER '$2'@'localhost' IDENTIFIED WITH mysql_native_password BY '$2';
-FLUSH PRIVILEGES;
-EOF
-status "MySQL authentication configuration Completed"
-
-# Create database and user
-DB_NAME="csye6225"
-log "Create database"
-mysql -u "$2" -p"$MYSQL_ROOT_PASSWORD" <<EOF
-CREATE DATABASE IF NOT EXISTS $DB_NAME;
-EOF
-status "Database creation Completed"
+#log "Install MySQL..."
+#MYSQL_ROOT_PASSWORD=$3
+#echo "mysql-server mysql-server/root_password password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
+#echo "mysql-server mysql-server/root_password_again password $MYSQL_ROOT_PASSWORD" | debconf-set-selections
+#apt-get install -y mysql-server
+#status "Install MySQL Completed"
+#
+## Start MySQL service
+#log "Start MySQL service..."
+#systemctl start mysql
+#systemctl enable mysql
+#status "MySQL service start Completed"
+#
+## Configure creds for mySQL
+#log "Configure MySQL authentication..."
+#mysql -u "$2" -p"$MYSQL_ROOT_PASSWORD" <<EOF
+#ALTER USER '$2'@'localhost' IDENTIFIED WITH mysql_native_password BY '$2';
+#FLUSH PRIVILEGES;
+#EOF
+#status "MySQL authentication configuration Completed"
+#
+## Create database and user
+#DB_NAME="csye6225"
+#log "Create database"
+#mysql -u "$2" -p"$MYSQL_ROOT_PASSWORD" <<EOF
+#CREATE DATABASE IF NOT EXISTS $DB_NAME;
+#EOF
+#status "Database creation Completed" ---
 
 # Create application group
 APP_GROUP="csye6225"
@@ -91,13 +91,13 @@ mkdir -p $APP_DIR
 status "Application directory creation Completde"
 
 # Create environment variable file
-log "Creating environment variable file..."
-cat > /etc/environment.d/csye6225.conf <<EOF
-database=jdbc:mysql://localhost:3306/csye6225
-username=$2
-password=$3
-EOF
-status "Environment variable file creation"
+#log "Creating environment variable file..."
+#cat > /etc/environment.d/csye6225.conf <<EOF
+#database=jdbc:mysql://localhost:3306/csye6225
+#username=$2
+#password=$3
+#EOF
+#status "Environment variable file creation" --- 2nd change
 
 # Move JAR file to application directory
 if [ -z "$1" ]; then
@@ -112,21 +112,21 @@ status "Application JAR file moved"
 log "Updating permissions..."
 chown -R $APP_USER:$APP_GROUP $APP_DIR
 chmod -R 750 $APP_DIR
-chmod 640 /etc/environment.d/csye6225.conf
+#chmod 640 /etc/environment.d/csye6225.conf  --- 1 change
 status "Permission update"
 
-# Configure MySQL to allow application connection
-log "Configuring MySQL..."
-cat >> /etc/mysql/mysql.conf.d/mysqld.cnf <<EOF
+## Configure MySQL to allow application connection
+#log "Configuring MySQL..."
+#cat >> /etc/mysql/mysql.conf.d/mysqld.cnf <<EOF
 
 # Application-specific configurations
-bind-address = 0.0.0.0
-port = 3306
-EOF
+#bind-address = 0.0.0.0
+#port = 3306
+#EOF
 
 # Restart MySQL to apply changes
-systemctl restart mysql
-status "MySQL configuration"
+#systemctl restart mysql
+#status "MySQL configuration"
 
 # Create systemd service file for Spring Boot application
 log "Creating systemd service file for Spring Boot application..."
@@ -151,7 +151,7 @@ status "Spring Boot systemd service file created"
 
 # Reload systemd and start the Spring Boot application
 systemctl daemon-reload
-systemctl start csye6225
+#systemctl start csye6225 -- 3rd change
 systemctl enable csye6225
 status "Spring Boot application setup completed"
 
