@@ -39,4 +39,9 @@ public class HealthCheckController {
        return ResponseEntity.ok().headers(responseHeaders).build();
 
     }
+
+    @RequestMapping(method = {RequestMethod.PUT, RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.PATCH,RequestMethod.POST})
+    public ResponseEntity<Void> methodNotAllowed() {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build(); // 405 Method Not Allowed
+    }
 }
