@@ -7,6 +7,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @RestController
 @RequestMapping("/healthz")
@@ -14,6 +17,8 @@ public class HealthCheckController {
 
     @Autowired
     private HealthCheckService healthCheckService;
+
+    private static final Logger logger = LoggerFactory.getLogger(HealthCheckController.class);
 
     @GetMapping("")
     public ResponseEntity<Void> getHealthCheckData(@RequestHeader HttpHeaders headers, HttpServletRequest request) {
@@ -24,18 +29,22 @@ public class HealthCheckController {
         responseHeaders.set("X-Content-Type-Options", "nosniff");
 
         if(request.getQueryString() != null || request.getContentLength() >0) {
+            logger.warn("Request contains query parameters or body, returning 400 Bad Request");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).headers(responseHeaders).build();
         }
         try {
+            logger.debug("Calling HealthCheckService to save health check data");
             healthCheckService.saveHealthCheck();
         }
         catch(Exception e)
         {
+            logger.error("Database insertion failed", e);
             System.out.println("Insertion into Database Failed");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(responseHeaders).build();
         }
 //        System.out.println(headers.get("Connection"));
 // Return a 200 OK response
+        logger.info("Health check passed, returning 200 OK");
        return ResponseEntity.ok().headers(responseHeaders).build();
 
     }
