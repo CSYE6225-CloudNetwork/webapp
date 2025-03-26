@@ -86,11 +86,11 @@
 		<!-- 			<artifactId>junit-jupiter-api</artifactId> -->
 		<!-- 		</dependency> -->
 
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.12.681</version>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>com.amazonaws</groupId>-->
+<!--			<artifactId>aws-java-sdk-s3</artifactId>-->
+<!--			<version>1.12.681</version>-->
+<!--		</dependency>-->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
