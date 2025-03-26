@@ -1,6 +1,7 @@
 package com.CSYE6225.webapp.Controllers;
 
 import com.CSYE6225.webapp.Services.HealthCheckService;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.micrometer.core.instrument.Timer;
 
 
 @RestController
@@ -18,10 +20,16 @@ public class HealthCheckController {
     @Autowired
     private HealthCheckService healthCheckService;
 
+    @Autowired
+    private MeterRegistry meterRegistry;
+
     private static final Logger logger = LoggerFactory.getLogger(HealthCheckController.class);
 
     @GetMapping("")
     public ResponseEntity<Void> getHealthCheckData(@RequestHeader HttpHeaders headers, HttpServletRequest request) {
+        logger.info("Health check request received");
+        Timer.Sample healthzTime = Timer.start(meterRegistry);
+        meterRegistry.counter("api.healthz.count").increment();
 
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -45,6 +53,7 @@ public class HealthCheckController {
 //        System.out.println(headers.get("Connection"));
 // Return a 200 OK response
         logger.info("Health check passed, returning 200 OK");
+        healthzTime.stop(meterRegistry.timer("api.healthz.time"));
        return ResponseEntity.ok().headers(responseHeaders).build();
 
     }
