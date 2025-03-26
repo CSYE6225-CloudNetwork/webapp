@@ -9,11 +9,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
+import java.time.Duration;
+import java.time.Instant;
 
 
 @RestController
 @RequestMapping("/healthz")
 public class HealthCheckController {
+    @Autowired
+    private MeterRegistry meterRegistry;
 
     @Autowired
     private HealthCheckService healthCheckService;
@@ -22,6 +29,11 @@ public class HealthCheckController {
 
     @GetMapping("")
     public ResponseEntity<Void> getHealthCheckData(@RequestHeader HttpHeaders headers, HttpServletRequest request) {
+        Instant start = Instant.now();
+        Counter.builder("api.healthz.requests")
+                .description("Health check API call count")
+                .register(meterRegistry)
+                .increment();
 
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -44,6 +56,11 @@ public class HealthCheckController {
         }
 //        System.out.println(headers.get("Connection"));
 // Return a 200 OK response
+        Duration duration = Duration.between(start, Instant.now());
+        Timer.builder("api.healthz.execution.time")
+                .description("Time taken to process health check API request")
+                .register(meterRegistry)
+                .record(duration);
         logger.info("Health check passed, returning 200 OK");
        return ResponseEntity.ok().headers(responseHeaders).build();
 
