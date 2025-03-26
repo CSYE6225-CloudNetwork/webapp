@@ -115,7 +115,11 @@ build {
     "source.amazon-ebs.ubuntu",
     "source.googlecompute.ubuntu"
   ]
-
+  provisioner "file" {
+    only        = ["amazon-ebs.ubuntu"]
+    source      = "../webapp/src/main/resources/cloudwatch-config.json"
+    destination = "/tmp/cloudwatch-config.json"
+  }
   provisioner "file" {
     source      = "../webapp/src/main/resources/setupscript.sh"
     destination = "/tmp/setupscript.sh"
@@ -132,6 +136,14 @@ build {
       "dos2unix /tmp/setupscript.sh",
       "chmod +x /tmp/setupscript.sh",
       "sudo /tmp/setupscript.sh /tmp/webapp-0.0.1-SNAPSHOT.jar ${var.USERNAME} ${var.MYSQL_PWD}"
+    ]
+  }
+  provisioner "shell" {
+    only = ["amazon-ebs.ubuntu"]
+    inline = [
+      "sudo mv /tmp/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
+      "sudo systemctl enable amazon-cloudwatch-agent",
+      "sudo systemctl start amazon-cloudwatch-agent"
     ]
   }
 
