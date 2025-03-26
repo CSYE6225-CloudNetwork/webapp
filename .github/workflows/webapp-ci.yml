@@ -28,6 +28,7 @@ jobs:
       password: ${{ secrets.MYSQL_PWD }}
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
       aws_region: ${{ vars.AWS_REGION }}
+      LOG_FILE_PATH: ${{vars.LOG_FILE_PATH}}
 
     steps:
       - name: Checkout branch
