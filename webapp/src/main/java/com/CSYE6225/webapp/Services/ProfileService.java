@@ -63,14 +63,14 @@ public class ProfileService {
                         .build(),
                 RequestBody.fromBytes(file.getBytes()));
         logger.info("saved profile picture to S3:{}",file.getOriginalFilename());
-        s3uploadTime.stop(meterRegistry.timer("s3.profilePicture.time"));
+        s3uploadTime.stop(meterRegistry.timer("profilePicture.time"));
         Profile profile = new Profile();
         profile.setFileName(picName+"."+ext);
         profile.setFilePath(path);
 
         Timer.Sample dbUploadTime = Timer.start(meterRegistry);
         Profile savedProfile = profileRepo.save(profile);
-        dbUploadTime.stop(meterRegistry.timer("db.profilePicture.time"));
+        dbUploadTime.stop(meterRegistry.timer("profilePicturedb.time"));
         logger.info("profile picture record saved to db:{}",savedProfile.getId());
         return savedProfile;
     }
@@ -79,10 +79,10 @@ public class ProfileService {
         Timer.Sample dbGetTime = Timer.start(meterRegistry);
         Profile profile = profileRepo.findById(id).get();
         if (profile.equals(null) || profileRepo.findById(id).isEmpty()) {
-            dbGetTime.stop(meterRegistry.timer("db.get.profilePicture.time"));
+            dbGetTime.stop(meterRegistry.timer("profilePicturedb.time"));
             return profile;
         }
-        dbGetTime.stop(meterRegistry.timer("db.get.profilePicture.time"));
+        dbGetTime.stop(meterRegistry.timer("profilePicturedb.time"));
         return profileRepo.findById(id).get();
     }
 
@@ -100,14 +100,16 @@ public class ProfileService {
         if (!profileRepo.findById(id).equals(null) && !profileRepo.findById(id).isEmpty()) {
             Profile profile = profileRepo.findById(id).get();
             String path = profile.getFilePath();
+            Timer.Sample s3deleteTime = Timer.start(meterRegistry);
             s3Client.deleteObject(builder -> builder.bucket(bucketName).key(path));
+            s3deleteTime.stop(meterRegistry.timer("profilePicture.delete.time"));
             profileRepo.deleteById(id);
-            dbDeleteTime.stop(meterRegistry.timer("db.delete.profilePicture.time"));
+            dbDeleteTime.stop(meterRegistry.timer("delete.profilePictureDB.time"));
             logger.info("profile picture record deleted from db:{}",id);
             return true;
         }
         logger.info("invalid id for delete profile picture record:{}",id);
-        dbDeleteTime.stop(meterRegistry.timer("db.delete.profilePicture.time"));
+        dbDeleteTime.stop(meterRegistry.timer("delete.profilePictureDB.time"));
         return false;
     }
 }
