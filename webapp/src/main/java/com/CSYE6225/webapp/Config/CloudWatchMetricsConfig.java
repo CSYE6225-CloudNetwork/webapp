@@ -22,24 +22,15 @@ public class CloudWatchMetricsConfig {
 
             @Override
             public Duration step() {
-                return Duration.ofSeconds(60);
+                return Duration.ofSeconds(10);
             }
 
             @Override
             public String prefix() {
-                return "csye6225-webapp";
-            }
-
-            @Override
-            public String host() {
-                return "localhost";
-            }
-
-            @Override
-            public int port() {
-                return 8125;
+                return "csye6225";
             }
         };
-        return new StatsdMeterRegistry(config, Clock.SYSTEM);
+
+        return new StatsdMeterRegistry(config, io.micrometer.core.instrument.Clock.SYSTEM);
     }
 }
