@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.micrometer.core.instrument.Timer;
 
-
 @RestController
 @RequestMapping("/healthz")
 public class HealthCheckController {
@@ -27,7 +26,7 @@ public class HealthCheckController {
 
     @GetMapping("")
     public ResponseEntity<Void> getHealthCheckData(@RequestHeader HttpHeaders headers, HttpServletRequest request) {
-        logger.info("Health check request received");
+        logger.info("Health check request received from IP: {}", request.getRemoteAddr());
         Timer.Sample healthzTime = Timer.start(meterRegistry);
         meterRegistry.counter("healthz.count").increment();
 
@@ -41,25 +40,24 @@ public class HealthCheckController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).headers(responseHeaders).build();
         }
         try {
-            logger.debug("Calling HealthCheckService to save health check data");
+            logger.debug("Calling HealthCheckService to save health check data. Headers: {}", headers);
             healthCheckService.saveHealthCheck();
         }
         catch(Exception e)
         {
-            logger.error("Database insertion failed", e);
+            logger.error("Database insertion failed: {}", e.getMessage(), e);
             System.out.println("Insertion into Database Failed");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(responseHeaders).build();
         }
-//        System.out.println(headers.get("Connection"));
-// Return a 200 OK response
+
         logger.info("Health check passed, returning 200 OK");
         healthzTime.stop(meterRegistry.timer("healthz.time"));
-       return ResponseEntity.ok().headers(responseHeaders).build();
-
+        return ResponseEntity.ok().headers(responseHeaders).build();
     }
 
     @RequestMapping(method = {RequestMethod.PUT, RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.PATCH,RequestMethod.POST,RequestMethod.DELETE})
-    public ResponseEntity<Void> methodNotAllowed() {
+    public ResponseEntity<Void> methodNotAllowed(HttpServletRequest request) {
+        logger.warn("Invalid request method: {} received for /healthz", request.getMethod());
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set("Cache-Control", "no-cache, no-store, must-revalidate");
         responseHeaders.set("Pragma", "no-cache");
