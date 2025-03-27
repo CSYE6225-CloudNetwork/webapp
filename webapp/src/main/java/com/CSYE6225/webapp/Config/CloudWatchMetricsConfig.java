@@ -16,8 +16,8 @@ public class CloudWatchMetricsConfig {
     public MeterRegistry meterRegistry() {
         StatsdConfig config = new StatsdConfig() {
             @Override
-            public String get(String key) {
-                return null;
+            public String prefix() {
+                return "csye6225-webapp";
             }
 
             @Override
@@ -26,9 +26,15 @@ public class CloudWatchMetricsConfig {
             }
 
             @Override
-            public String prefix() {
-                return "csye6225";
+
+            public String get(String key) {
+                return null;
             }
+
+
+
+
+
         };
 
         return new StatsdMeterRegistry(config, io.micrometer.core.instrument.Clock.SYSTEM);
