@@ -24,27 +24,36 @@ public class HealthCheckController {
 
     private static final Logger logger = LoggerFactory.getLogger(HealthCheckController.class);
 
+    private final io.micrometer.core.instrument.Counter healthzCounter;
+
+    @Autowired
+    public HealthCheckController(HealthCheckService healthCheckService, MeterRegistry meterRegistry) {
+        this.healthCheckService = healthCheckService;
+        this.meterRegistry = meterRegistry;
+        this.healthzCounter = meterRegistry.counter("healthz.count"); // Persistent Counter
+    }
+
     @GetMapping("")
     public ResponseEntity<Void> getHealthCheckData(@RequestHeader HttpHeaders headers, HttpServletRequest request) {
         logger.info("Health check request received from IP: {}", request.getRemoteAddr());
         Timer.Sample healthzTime = Timer.start(meterRegistry);
-        meterRegistry.counter("healthz.count").increment();
+
+        // Increment the counter
+        healthzCounter.increment();
 
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set("Cache-Control", "no-cache, no-store, must-revalidate");
         responseHeaders.set("Pragma", "no-cache");
         responseHeaders.set("X-Content-Type-Options", "nosniff");
 
-        if(request.getQueryString() != null || request.getContentLength() >0) {
+        if (request.getQueryString() != null || request.getContentLength() > 0) {
             logger.warn("Request contains query parameters or body, returning 400 Bad Request");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).headers(responseHeaders).build();
         }
         try {
             logger.debug("Calling HealthCheckService to save health check data. Headers: {}", headers);
             healthCheckService.saveHealthCheck();
-        }
-        catch(Exception e)
-        {
+        } catch (Exception e) {
             logger.error("Database insertion failed: {}", e.getMessage(), e);
             System.out.println("Insertion into Database Failed");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(responseHeaders).build();
@@ -55,7 +64,7 @@ public class HealthCheckController {
         return ResponseEntity.ok().headers(responseHeaders).build();
     }
 
-    @RequestMapping(method = {RequestMethod.PUT, RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.PATCH,RequestMethod.POST,RequestMethod.DELETE})
+    @RequestMapping(method = {RequestMethod.PUT, RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.PATCH, RequestMethod.POST, RequestMethod.DELETE})
     public ResponseEntity<Void> methodNotAllowed(HttpServletRequest request) {
         logger.warn("Invalid request method: {} received for /healthz", request.getMethod());
         HttpHeaders responseHeaders = new HttpHeaders();

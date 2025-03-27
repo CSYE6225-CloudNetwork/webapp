@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.Counter;
 
 import java.io.IOException;
 import java.util.Map;
@@ -25,16 +26,29 @@ public class ProfileController {
     @Autowired
     private MeterRegistry meterRegistry;
 
-    @Value("${S3.BucketName}") String bucketName;
+    @Value("${S3.BucketName}")
+    String bucketName;
 
-    public ProfileController(ProfileService profileService) {
+    // Declare counters as instance variables
+    private final Counter profileSaveCounter;
+    private final Counter profileGetCounter;
+    private final Counter profileDeleteCounter;
+
+    @Autowired
+    public ProfileController(ProfileService profileService, MeterRegistry meterRegistry) {
         this.profileService = profileService;
+        this.meterRegistry = meterRegistry;
+
+        // Initialize counters in the constructor
+        this.profileSaveCounter = meterRegistry.counter("profilePicture.save.count");
+        this.profileGetCounter = meterRegistry.counter("profilePicture.get.count");
+        this.profileDeleteCounter = meterRegistry.counter("profilePicture.delete.count");
     }
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> uploadFile(@RequestParam("profilePic") MultipartFile file) {
         logger.info("Uploading profile picture started: {}", file.getOriginalFilename());
-        meterRegistry.counter("profilePicture.save.count").increment();
+        profileSaveCounter.increment();  // Increment the counter for save action
         Timer.Sample apiCallTimer = Timer.start(meterRegistry);
 
         if (file == null || file.isEmpty()) {
@@ -60,7 +74,7 @@ public class ProfileController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getFileMetadata(@PathVariable String id) {
-        meterRegistry.counter("profilePicture.get.count").increment();
+        profileGetCounter.increment();  // Increment the counter for get action
         Timer.Sample apiCallTimer = Timer.start(meterRegistry);
         logger.info("Fetching profile picture metadata for ID: {}", id);
 
@@ -87,7 +101,7 @@ public class ProfileController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFile(@PathVariable String id) {
-        meterRegistry.counter("profilePicture.delete.count").increment();
+        profileDeleteCounter.increment();  // Increment the counter for delete action
         Timer.Sample apiCallTimer = Timer.start(meterRegistry);
         logger.info("Deleting profile picture with ID: {}", id);
 
