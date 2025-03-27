@@ -36,7 +36,7 @@ public class ProfileController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> uploadFile(@RequestParam("profilePic") MultipartFile file) {
         logger.info("Uploading profile picture started: {}", file.getOriginalFilename());
-        meterRegistry.counter("api.profilePicture.count").increment();
+        meterRegistry.counter("api.profilePicture.save.count").increment();
         Timer.Sample apiCallTimer = Timer.start(meterRegistry);
         if (file == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -59,7 +59,9 @@ public class ProfileController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getFileMetadata(@PathVariable String id) {
-        meterRegistry.counter("api.get.profilePicture.count").increment();
+        meterRegistry.counter("api.profilePicture.count").increment();
+
+        meterRegistry.counter("api.get.profilePicture.get.count").increment();
         Timer.Sample apiCallTimer = Timer.start(meterRegistry);
         logger.info("get profile picture started: {}", id);
         if (id == null || id.isEmpty()) {
@@ -85,6 +87,8 @@ public class ProfileController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFile(@PathVariable String id) {
+        meterRegistry.counter("api.get.profilePicture.delete.count").increment();
+
         meterRegistry.counter("api.delete.profilePicture.count").increment();
         Timer.Sample apiCallTimer = Timer.start(meterRegistry);
         logger.info("delete profile picture started: {}", id);
@@ -106,7 +110,7 @@ public class ProfileController {
     // Return 400 Bad Request if no ID is provided for GET /v1/file and DELETE /v1/file
     @GetMapping
     public ResponseEntity<Void> getFileWithoutId() {
-        System.out.println("Inside this");
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // 400 Bad Request
     }
 

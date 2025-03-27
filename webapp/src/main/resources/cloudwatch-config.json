@@ -24,7 +24,7 @@
     }
   },
   "metrics": {
-    "namespace": "CSYE6225",
+    "namespace": "csye6225-webapp",
     "metrics_collected": {
       "cpu": {
         "resources": ["*"],
