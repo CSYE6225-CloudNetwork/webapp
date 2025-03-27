@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.micrometer.core.instrument.Timer;
 
+
 @RestController
 @RequestMapping("/healthz")
 public class HealthCheckController {
@@ -24,49 +25,41 @@ public class HealthCheckController {
 
     private static final Logger logger = LoggerFactory.getLogger(HealthCheckController.class);
 
-    private final io.micrometer.core.instrument.Counter healthzCounter;
-
-    @Autowired
-    public HealthCheckController(HealthCheckService healthCheckService, MeterRegistry meterRegistry) {
-        this.healthCheckService = healthCheckService;
-        this.meterRegistry = meterRegistry;
-        this.healthzCounter = meterRegistry.counter("healthz.count"); // Persistent Counter
-    }
-
     @GetMapping("")
     public ResponseEntity<Void> getHealthCheckData(@RequestHeader HttpHeaders headers, HttpServletRequest request) {
-        logger.info("Health check request received from IP: {}", request.getRemoteAddr());
+        logger.info("Health check request received");
         Timer.Sample healthzTime = Timer.start(meterRegistry);
-
-        // Increment the counter
-        healthzCounter.increment();
+        meterRegistry.counter("healthz.count").increment();
 
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set("Cache-Control", "no-cache, no-store, must-revalidate");
         responseHeaders.set("Pragma", "no-cache");
         responseHeaders.set("X-Content-Type-Options", "nosniff");
 
-        if (request.getQueryString() != null || request.getContentLength() > 0) {
+        if(request.getQueryString() != null || request.getContentLength() >0) {
             logger.warn("Request contains query parameters or body, returning 400 Bad Request");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).headers(responseHeaders).build();
         }
         try {
-            logger.debug("Calling HealthCheckService to save health check data. Headers: {}", headers);
+            logger.debug("Calling HealthCheckService to save health check data");
             healthCheckService.saveHealthCheck();
-        } catch (Exception e) {
-            logger.error("Database insertion failed: {}", e.getMessage(), e);
+        }
+        catch(Exception e)
+        {
+            logger.error("Database insertion failed", e);
             System.out.println("Insertion into Database Failed");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).headers(responseHeaders).build();
         }
-
+//        System.out.println(headers.get("Connection"));
+// Return a 200 OK response
         logger.info("Health check passed, returning 200 OK");
         healthzTime.stop(meterRegistry.timer("healthz.time"));
-        return ResponseEntity.ok().headers(responseHeaders).build();
+       return ResponseEntity.ok().headers(responseHeaders).build();
+
     }
 
-    @RequestMapping(method = {RequestMethod.PUT, RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.PATCH, RequestMethod.POST, RequestMethod.DELETE})
-    public ResponseEntity<Void> methodNotAllowed(HttpServletRequest request) {
-        logger.warn("Invalid request method: {} received for /healthz", request.getMethod());
+    @RequestMapping(method = {RequestMethod.PUT, RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.PATCH,RequestMethod.POST,RequestMethod.DELETE})
+    public ResponseEntity<Void> methodNotAllowed() {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set("Cache-Control", "no-cache, no-store, must-revalidate");
         responseHeaders.set("Pragma", "no-cache");
