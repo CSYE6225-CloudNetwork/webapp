@@ -36,7 +36,7 @@ public class ProfileController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> uploadFile(@RequestParam("profilePic") MultipartFile file) {
         logger.info("Uploading profile picture started: {}", file.getOriginalFilename());
-        meterRegistry.counter("api.profilePicture.save.count").increment();
+        meterRegistry.counter("profilePicture.save.count").increment();
         Timer.Sample apiCallTimer = Timer.start(meterRegistry);
         if (file == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -44,7 +44,7 @@ public class ProfileController {
 
         try {
             Profile profile = profileService.saveProfile(file);
-            apiCallTimer.stop(meterRegistry.timer("api.profilePicture.save"));
+            apiCallTimer.stop(meterRegistry.timer("profilePicture.save"));
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                     "file_name", profile.getFileName(),
                     "id", profile.getId(),
@@ -59,9 +59,9 @@ public class ProfileController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getFileMetadata(@PathVariable String id) {
-        meterRegistry.counter("api.profilePicture.count").increment();
+        meterRegistry.counter("profilePicture.count").increment();
 
-        meterRegistry.counter("api.get.profilePicture.get.count").increment();
+        meterRegistry.counter("profilePicture.get.count").increment();
         Timer.Sample apiCallTimer = Timer.start(meterRegistry);
         logger.info("get profile picture started: {}", id);
         if (id == null || id.isEmpty()) {
@@ -71,7 +71,7 @@ public class ProfileController {
 
         Profile profile = profileService.getProfilePicture(id);
         if (profile != null) {
-            apiCallTimer.stop(meterRegistry.timer("api.profilePicture.get"));
+            apiCallTimer.stop(meterRegistry.timer("profilePicture.get"));
             logger.info("get profile picture finished: {}", id);
             return ResponseEntity.ok(Map.of(
                     "file_name", profile.getFileName(),
@@ -87,9 +87,9 @@ public class ProfileController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFile(@PathVariable String id) {
-        meterRegistry.counter("api.get.profilePicture.delete.count").increment();
+        meterRegistry.counter("profilePicture.delete.count").increment();
 
-        meterRegistry.counter("api.delete.profilePicture.count").increment();
+        meterRegistry.counter("delete.profilePicture.count").increment();
         Timer.Sample apiCallTimer = Timer.start(meterRegistry);
         logger.info("delete profile picture started: {}", id);
         if (id == null || id.isEmpty()) {
@@ -98,7 +98,7 @@ public class ProfileController {
         }
 
         if (profileService.deleteProfile(id)) {
-            apiCallTimer.stop(meterRegistry.timer("api.profilePicture.delete"));
+            apiCallTimer.stop(meterRegistry.timer("profilePicture.delete"));
             logger.info("delete profile picture finished: {}", id);
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // 204 No Content
         } else {

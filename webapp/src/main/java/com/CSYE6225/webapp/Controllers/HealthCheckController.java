@@ -29,7 +29,7 @@ public class HealthCheckController {
     public ResponseEntity<Void> getHealthCheckData(@RequestHeader HttpHeaders headers, HttpServletRequest request) {
         logger.info("Health check request received");
         Timer.Sample healthzTime = Timer.start(meterRegistry);
-        meterRegistry.counter("api.healthz.count").increment();
+        meterRegistry.counter("healthz.count").increment();
 
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -53,7 +53,7 @@ public class HealthCheckController {
 //        System.out.println(headers.get("Connection"));
 // Return a 200 OK response
         logger.info("Health check passed, returning 200 OK");
-        healthzTime.stop(meterRegistry.timer("api.healthz.time"));
+        healthzTime.stop(meterRegistry.timer("healthz.time"));
        return ResponseEntity.ok().headers(responseHeaders).build();
 
     }

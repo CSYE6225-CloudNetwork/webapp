@@ -25,7 +25,7 @@ public class HealthCheckImpl implements HealthCheckService {
         Timer.Sample healthzDBCall = Timer.start(meterRegistry);
         HealthCheck healthCheck = new HealthCheck();
         healthCheckRepository.save(healthCheck);
-        healthzDBCall.stop(meterRegistry.timer("db.healthz.time"));
+        healthzDBCall.stop(meterRegistry.timer("healthzDB.time"));
 
     }
 }
