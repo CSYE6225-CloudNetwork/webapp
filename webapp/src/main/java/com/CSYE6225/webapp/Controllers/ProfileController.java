@@ -107,27 +107,27 @@ public class ProfileController {
         }
     }
 
-    // Return 400 Bad Request if no ID is provided for GET /v1/file and DELETE /v1/file
     @GetMapping
     public ResponseEntity<Void> getFileWithoutId() {
-
+        logger.warn("Attempt to get profile picture metadata without ID");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // 400 Bad Request
     }
 
     @DeleteMapping
     public ResponseEntity<Void> deleteFileWithoutId() {
+        logger.warn("Attempt to delete profile picture without ID");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build(); // 400 Bad Request
     }
 
-    // Handle unsupported methods for /v1/file
     @RequestMapping(method = {RequestMethod.PUT, RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.PATCH})
     public ResponseEntity<Void> methodNotAllowedFile() {
+        logger.warn("Unsupported HTTP method attempted on /v1/file endpoint");
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build(); // 405 Method Not Allowed
     }
 
-    // Handle unsupported methods for /v1/file/{id}
     @RequestMapping(value = "/{id}", method = {RequestMethod.PUT, RequestMethod.HEAD, RequestMethod.OPTIONS, RequestMethod.PATCH})
     public ResponseEntity<Void> methodNotAllowedFileId() {
+        logger.warn("Unsupported HTTP method attempted on /v1/file/{id} endpoint");
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build(); // 405 Method Not Allowed
     }
 }
