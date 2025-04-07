@@ -26,21 +26,21 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-            aws-access-key-id: ${{ secrets.AWS_GITHUB_ACCESS_KEY }}
-            aws-secret-access-key: ${{ secrets.AWS_GITHUB_SECRET_KEY }}
-            aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_GITHUB_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_GITHUB_SECRET_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       # Install GCP CLI
       - name: Setup GCP SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-             version: "latest"
+          version: "latest"
 
         #  Authenticate to GCP
       - name: Authenticate to GCP
         uses: google-github-actions/auth@v1
         with:
-              credentials_json: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
 
       - name: Maven Build
@@ -98,7 +98,7 @@ jobs:
 
           echo "GCP_IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
           echo "Found GCP Image Name: $IMAGE_NAME"
-      
+
 
       - name: Share GCP Machine Image with Service Account
         run: |
@@ -106,110 +106,111 @@ jobs:
             --project=${{ vars.GCP_PROJECT_ID }} \
             --member="serviceAccount:${{ secrets.DEMO_GCP_SA }}" \
             --role="roles/compute.imageUser"
-      
+
       - name: Extract Latest AMI ID
         id: get-ami
         run: |
-            AMI_ID=$(aws ec2 describe-images \
-            --owners self \
-            --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
-            --output text)
-            echo "AMI_ID=$AMI_ID"
-            echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
-            echo "ami-id=$AMI_ID" >> $GITHUB_OUTPUT
+          AMI_ID=$(aws ec2 describe-images \
+          --owners self \
+          --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
+          --output text)
+          echo "AMI_ID=$AMI_ID"
+          echo "AMI_ID=$AMI_ID" >> $GITHUB_ENV
+          echo "ami-id=$AMI_ID" >> $GITHUB_OUTPUT
 
       - name: Share AMI with DEMO AWS Account
         run: |
-                aws ec2 modify-image-attribute \
-                  --image-id ${{ env.AMI_ID }} \
-                  --launch-permission "Add=[{UserId=${{ vars.AWS_DEMO_ACCOUNT_ID }}}]"
-                echo "AMI ${{ env.AMI_ID }} shared with DEMO account ${{ vars.AWS_DEMO_ACCOUNT_ID }}"
+          aws ec2 modify-image-attribute \
+            --image-id ${{ env.AMI_ID }} \
+            --launch-permission "Add=[{UserId=${{ vars.AWS_DEMO_ACCOUNT_ID }}}]"
+          echo "AMI ${{ env.AMI_ID }} shared with DEMO account ${{ vars.AWS_DEMO_ACCOUNT_ID }}"
 
       - name: Reconfigure AWS CLI for DEMO account
         uses: aws-actions/configure-aws-credentials@v2
         with:
-                aws-access-key-id: ${{ secrets.AWS_DEMO_GITHUB_ACCESSKEY }}
-                aws-secret-access-key: ${{ secrets.AWS_DEMO_GITHUB_SECRETKEY }}
-                aws-region: ${{ vars.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_DEMO_GITHUB_ACCESSKEY }}
+          aws-secret-access-key: ${{ secrets.AWS_DEMO_GITHUB_SECRETKEY }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Create New Launch Template Version with Latest AMI
         id: new-lt-version
         run: |
-                echo "Fetching Launch Template ID for name: ${{ vars.LAUNCH_TEMPLATE_NAME }}"
-                LT_ID=$(aws ec2 describe-launch-templates \
-                  --filters "Name=launch-template-name,Values=${{ vars.LAUNCH_TEMPLATE_NAME }}" \
-                  --query "LaunchTemplates[0].LaunchTemplateId" \
-                  --output text)
-                
-                echo "Launch Template ID: $LT_ID"
-                
-                echo "Fetching latest version of existing launch template..."
-                LATEST_VERSION=$(aws ec2 describe-launch-template-versions \
-                  --launch-template-id $LT_ID \
-                  --query "LaunchTemplateVersions[-1].VersionNumber" \
-                  --output text)
-                
-                aws ec2 describe-launch-template-versions \
-                  --launch-template-id $LT_ID \
-                  --versions $LATEST_VERSION \
-                  --query "LaunchTemplateVersions[0].LaunchTemplateData" \
-                  --output json > original_lt_data.json
-                
-                jq --arg ami "${{ env.AMI_ID }}" '.ImageId = $ami' original_lt_data.json > updated_lt_data.json
-                
-                aws ec2 create-launch-template-version \
-                  --launch-template-id $LT_ID \
-                  --launch-template-data file://updated_lt_data.json
-                
-                aws ec2 modify-launch-template \
-                  --launch-template-id $LT_ID \
-                  --default-version '$Latest'
-                
-                echo "LT_ID=$LT_ID" >> $GITHUB_ENV
+          echo "Fetching Launch Template ID for name: ${{ vars.LAUNCH_TEMPLATE_NAME }}"
+          LT_ID=$(aws ec2 describe-launch-templates \
+            --filters "Name=launch-template-name,Values=${{ vars.LAUNCH_TEMPLATE_NAME }}" \
+            --query "LaunchTemplates[0].LaunchTemplateId" \
+            --output text)
+          
+          echo "Launch Template ID: $LT_ID"
+          
+          echo "Fetching latest version of existing launch template..."
+          LATEST_VERSION=$(aws ec2 describe-launch-template-versions \
+            --launch-template-id $LT_ID \
+            --query "LaunchTemplateVersions[-1].VersionNumber" \
+            --output text)
+          
+          aws ec2 describe-launch-template-versions \
+            --launch-template-id $LT_ID \
+            --versions $LATEST_VERSION \
+            --query "LaunchTemplateVersions[0].LaunchTemplateData" \
+            --output json > original_lt_data.json
+          
+          jq --arg ami "${{ env.AMI_ID }}" '.ImageId = $ami' original_lt_data.json > updated_lt_data.json
+          
+          aws ec2 create-launch-template-version \
+            --launch-template-id $LT_ID \
+            --launch-template-data file://updated_lt_data.json
+          
+          aws ec2 modify-launch-template \
+            --launch-template-id $LT_ID \
+            --default-version '$Latest'
+          
+          echo "LT_ID=$LT_ID" >> $GITHUB_ENV
 
       - name: Start Instance Refresh
         id: refresh
         run: |
-                REFRESH_ID=$(aws autoscaling start-instance-refresh \
-                  --auto-scaling-group-name ${{ vars.ASG_NAME }} \
-                  --query "InstanceRefreshId" \
-                  --output text)
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name ${{ vars.ASG_NAME }} \
+            --preferences '{"MinHealthyPercentage": ${{vars.INSTANCE_HEALTHY_PERCENTAGE}}, "InstanceWarmup": ${{vars.INSTANCE_WARMUP}}}' \
+            --query "InstanceRefreshId" \
+            --output text)
                 echo "refresh_id=$REFRESH_ID" >> $GITHUB_OUTPUT
                 echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
 
       - name: Wait for Instance Refresh to Complete
         run: |
-                echo "Waiting for instance refresh to complete..."
-                status="Pending"
-                max_attempts=60   # Increase max attempts to allow for longer refresh times
-                attempt=1
-                
-                while [ "$status" == "Pending" ] || [ "$status" == "InProgress" ]; do
-                  if [ $attempt -gt $max_attempts ]; then
-                    echo "Timed out waiting for instance refresh to complete"
-                    exit 1
-                  fi
-                
-                  status=$(aws autoscaling describe-instance-refreshes \
-                    --auto-scaling-group-name ${{ vars.ASG_NAME }} \
-                    --instance-refresh-ids ${{ env.REFRESH_ID }} \
-                    --query "InstanceRefreshes[0].Status" \
-                    --output text)
-                
-                  echo "Attempt $attempt: Current status: $status"
-                
-                  if [ "$status" == "Successful" ]; then
-                    echo "Instance refresh completed successfully"
-                    exit 0
-                  elif [ "$status" == "Failed" ] || [ "$status" == "Cancelled" ]; then
-                    echo "Instance refresh $status"
-                    echo "Refresh details:"
-                    aws autoscaling describe-instance-refreshes \
-                      --auto-scaling-group-name ${{ vars.ASG_NAME }} \
-                      --instance-refresh-ids ${{ env.REFRESH_ID }}
-                    exit 1
-                  fi
-                
-                  attempt=$((attempt+1))
-                  sleep 30
-                done
+          echo "Waiting for instance refresh to complete..."
+          status="Pending"
+          max_attempts=60   # Increase max attempts to allow for longer refresh times
+          attempt=1
+          
+          while [ "$status" == "Pending" ] || [ "$status" == "InProgress" ]; do
+            if [ $attempt -gt $max_attempts ]; then
+              echo "Timed out waiting for instance refresh to complete"
+              exit 1
+            fi
+          
+            status=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name ${{ vars.ASG_NAME }} \
+              --instance-refresh-ids ${{ env.REFRESH_ID }} \
+              --query "InstanceRefreshes[0].Status" \
+              --output text)
+          
+            echo "Attempt $attempt: Current status: $status"
+          
+            if [ "$status" == "Successful" ]; then
+              echo "Instance refresh completed successfully"
+              exit 0
+            elif [ "$status" == "Failed" ] || [ "$status" == "Cancelled" ]; then
+              echo "Instance refresh $status"
+              echo "Refresh details:"
+              aws autoscaling describe-instance-refreshes \
+                --auto-scaling-group-name ${{ vars.ASG_NAME }} \
+                --instance-refresh-ids ${{ env.REFRESH_ID }}
+              exit 1
+            fi
+          
+            attempt=$((attempt+1))
+            sleep 30
+          done
