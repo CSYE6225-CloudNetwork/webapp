@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/v1/file")
+@RequestMapping("/v2/file")
 public class ProfileController {
     private final ProfileService profileService;
     private static final Logger logger = LoggerFactory.getLogger(ProfileController.class);
